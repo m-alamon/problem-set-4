@@ -4,7 +4,20 @@ PART 1: ETL
 - NOTE: You will update this code for PART 4: CATEGORICAL PLOTS
 '''
 
+import os
 import pandas as pd
+
+def create_directories(directories):
+    """
+    Creates the necessary directories for storing plots and data.
+
+    Args:
+        directories (list of str): A list of directory paths to create.
+    """
+    
+    
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
 
 def extract_transform():
     """
@@ -24,4 +37,12 @@ def extract_transform():
     charge_counts = arrest_events.groupby(['charge_degree']).size().reset_index(name='count')
     charge_counts_by_offense = arrest_events.groupby(['charge_degree', 'offense_category']).size().reset_index(name='count')
     
+    # Determine if an arrest had at least one felony charge
+    felony_charge = arrest_events.groupby('arrest_id').apply(
+        lambda x: pd.Series({'has_felony_charge': (x['charge_degree'] == 'Felony').any()})).reset_index()
+    felony_charge.to_csv('./data/felony_charge.csv', index=False)
+
+    # Merge `felony_charge` with `pred_universe`
+    pred_universe = pd.merge(pred_universe, felony_charge, on='arrest_id', how='left')
+
     return pred_universe, arrest_events, charge_counts, charge_counts_by_offense
